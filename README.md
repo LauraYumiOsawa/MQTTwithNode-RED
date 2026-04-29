@@ -1,72 +1,201 @@
-# MQTTwithNode-RED
+# MQTT com Node-RED
 
-1. Monitoramento Global (Modo Debug)
-Bash
-mosquitto_sub -h localhost -p 1883 -t "casa/#" -v
-O que você vai ouvir: TUDO o que acontece na casa.
+Sistema integrado de automação residencial usando **MQTT** e **Node-RED**, com monitoramento em tempo real de dispositivos, sensores e alertas de segurança.
 
-Pra que serve: O símbolo # é o super-coringa, significa "tudo o que vier daqui pra frente". Você verá uma enxurrada de dados: temperatura, umidade, luminosidade, alertas e comandos de todos os cômodos. Perfeito para verificar se o sistema inteiro está comunicando.
+---
 
-2. Estados dos Dispositivos
-Bash
-mosquitto_sub -h localhost -p 1883 -t "casa/+/+/estado" -v
-O que você vai ouvir: A confirmação de estado de TODOS os aparelhos controláveis (Luz, Ar-condicionado, etc).
+## Sumário
 
-Pra que serve: O símbolo + funciona como um coringa para um único nível. Este comando filtra por: casa / qualquer_comodo / qualquer_aparelho / estado. Se você ligar a luz da sala no Dashboard, a confirmação ("ON" ou "OFF") aparecerá aqui.
+- [Sobre o Projeto](#sobre-o-projeto)
+- [Requisitos](#requisitos)
+- [Instalação](#instalação)
+- [Como Usar](#como-usar)
+- [Estrutura MQTT](#estrutura-mqtt)
+- [Configurações e QoS](#configurações-e-qos)
+- [FAQ](#faq)
 
-3. Canal de Alertas Críticos
-Bash
-mosquitto_sub -h localhost -p 1883 -t "casa/alertas" -v
-O que você vai ouvir: Apenas os avisos de emergência.
+---
 
-Pra que serve: A tela ficará vazia a maior parte do tempo. Ele só imprimirá algo se a temperatura passar do limite ou se o sensor de gás disparar. Ideal para rodar em um monitor separado focado em segurança.
+## Sobre o Projeto
 
-## Estrutura MQTT
+Este projeto implementa uma solução completa de automação residencial baseada em:
 
-casa/
-├── sala/
-│   ├── temperatura, umidade, luminosidade (QoS 0)
-│   └── luz/ (comando: QoS 1 | estado: QoS 1, Retain true)
-├── quarto/
-│   ├── temperatura, umidade, luminosidade (QoS 0)
-│   ├── presenca (QoS 1, Retain true)
-│   └── ar/ (comando: QoS 1 | estado: QoS 1, Retain true)
-├── cozinha/
-│   ├── temperatura, umidade (QoS 0)
-│   └── gas (QoS 2)
-└── alertas (QoS 2)
+- **MQTT**: Protocolo leve para comunicação entre dispositivos
+- **Node-RED**: Plataforma visual para orquestração de fluxos
+- **Mosquitto**: Broker MQTT de alta performance
 
-Como Instalar e Testar
-1. Pré-requisitos
-Certifique-se de que o Mosquitto e o Node-RED estão em execução:
+**Funcionalidades:**
+✅ Controle remoto de dispositivos (luzes, ar-condicionado, etc)  
+✅ Monitoramento de sensores (temperatura, umidade, luminosidade, gás)  
+✅ Sistema de alertas críticos em tempo real  
+✅ Dashboard interativo  
 
-Bash
+---
+
+## Requisitos
+
+- **Sistema Operacional**: Linux/macOS/Windows (com WSL)
+- **Node.js**: v16.0.0 ou superior
+- **Mosquitto**: v2.0.0 ou superior
+- **Docker** (opcional): Para containerização
+
+### Verificar Instalações
+
+```bash
+# Verificar Node-RED
+which node-red
+
 # Verificar Mosquitto
+mosquitto -v
+
+# Verificar Node.js
+node --version
+```
+
+---
+
+## Instalação
+
+### 1. Instalar Dependências
+
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install mosquitto mosquitto-clients nodejs npm
+
+# macOS
+brew install mosquitto node-red node
+```
+
+### 2. Iniciar Mosquitto
+
+```bash
+# Verificar status
 sudo systemctl status mosquitto
 
-# Iniciar Node-RED
+# Se não estiver rodando
+sudo systemctl start mosquitto
+
+# (Opcional) Habilitar na inicialização
+sudo systemctl enable mosquitto
+```
+
+### 3. Instalar e Iniciar Node-RED
+
+```bash
+# Instalar globalmente
+npm install -g node-red
+
+# Iniciar
 node-red
-2. Importar o Fluxo
-Abra o Node-RED em seu navegador.
+```
 
-Vá em Menu (≡) -> Import.
+O Node-RED estará disponível em `http://localhost:1880`
 
-Cole o conteúdo do arquivo nodered-flow.json.
+### 4. Importar o Fluxo
 
-Clique em Deploy.
+1. Abra o Node-RED em seu navegador: **http://localhost:1880**
+2. Clique em Menu (≡) → **Import**
+3. Cole o conteúdo do arquivo `nodered.json`
+4. Clique em **Deploy**
 
-3. Teste de Comando Manual
-Você pode simular o envio de um comando pelo terminal para ver o sistema respondendo:
+---
 
-Bash
+## Como Usar
+
+### 1️⃣ Monitoramento Global (Modo Debug)
+
+Escute **TUDO** que acontece na casa em tempo real:
+
+```bash
+mosquitto_sub -h localhost -p 1883 -t "casa/#" -v
+```
+
+**O que você verá:** Temperatura, umidade, luminosidade, alertas e comandos de todos os cômodos.
+
+**Quando usar:** Verificar se o sistema inteiro está comunicando corretamente.
+
+---
+
+### 2️⃣ Estados dos Dispositivos
+
+Monitore apenas o status dos aparelhos controláveis:
+
+```bash
+mosquitto_sub -h localhost -p 1883 -t "casa/+/+/estado" -v
+```
+
+**O que você verá:** Apenas respostas `ON` ou `OFF` de luzes, ar-condicionado, etc.
+
+**Quando usar:** Confirmar que os comandos foram executados.
+
+---
+
+### 3️⃣ Canal de Alertas Críticos
+
+Receba apenas notificações de emergência:
+
+```bash
+mosquitto_sub -h localhost -p 1883 -t "casa/alertas" -v
+```
+
+**O que você verá:** Apenas quando temperatura ultrapassa limite ou sensor de gás dispara.
+
+**Quando usar:** Monitorar segurança de forma desatenta.
+
+---
+
+### 4️⃣ Teste de Comando Manual
+
+Simule o envio de um comando:
+
+```bash
 mosquitto_pub -h localhost -p 1883 -t "casa/sala/luz/comando" \
   -m '{"comando":"LIGAR","dispositivo":"sala_luz_01","timestamp":"2026-04-28T20:00:00Z"}' \
   -q 1
+```
 
+---
 
+## Estrutura MQTT
 
-Recurso,Configuração,Motivo
-QoS 0,Telemetria Simples,"Dados contínuos; se perder um pacote, o próximo chega em segundos."
-QoS 1,Comandos e Estados,Garante que a lâmpada receba a ordem de ligar ao menos uma vez.
-QoS 2,Alertas e Gás,Crítico; o alerta não pode ser perdido nem duplicado.
-Retain: True,Estados (ON/OFF),"Garante que, ao abrir o Dashboard, ele saiba o estado atual do aparelho imediatamente."
+```
+casa/
+├── sala/
+│   ├── temperatura          (QoS 0 - Telemetria)
+│   ├── umidade              (QoS 0 - Telemetria)
+│   ├── luminosidade         (QoS 0 - Telemetria)
+│   └── luz/
+│       ├── comando          (QoS 1 - Comando)
+│       └── estado           (QoS 1 - Estado, Retain: true)
+│
+├── quarto/
+│   ├── temperatura          (QoS 0 - Telemetria)
+│   ├── umidade              (QoS 0 - Telemetria)
+│   ├── luminosidade         (QoS 0 - Telemetria)
+│   ├── presenca             (QoS 1 - Retain: true)
+│   └── ar/
+│       ├── comando          (QoS 1 - Comando)
+│       └── estado           (QoS 1 - Estado, Retain: true)
+│
+├── cozinha/
+│   ├── temperatura          (QoS 0 - Telemetria)
+│   ├── umidade              (QoS 0 - Telemetria)
+│   └── gas                  (QoS 2 - Crítico)
+│
+└── alertas                  (QoS 2 - Crítico, Retain: true)
+```
+
+---
+
+## Configurações e QoS
+
+| Recurso | Configuração | QoS | Motivo |
+|---------|--------------|-----|--------|
+| **Telemetria** | Temperatura, Umidade, etc. | 0 | Dados contínuos; se perder um pacote, o próximo chega em segundos |
+| **Comandos** | Luzes, Ar-condicionado | 1 | Garante entrega pelo menos uma vez |
+| **Estados** | ON/OFF de devices | 1 + Retain | Dispositivo recebe o estado ao conectar |
+| **Alertas Críticos** | Temperatura > limite, Gás | 2 | Não pode ser perdido nem duplicado |
+| **Retain** | Estados e Alertas | - | Dashboard carrega estado atual ao abrir |
+
+---
